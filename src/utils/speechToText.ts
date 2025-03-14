@@ -16,8 +16,8 @@ export const initTranscriptionModel = async () => {
         "automatic-speech-recognition",
         "onnx-community/whisper-tiny.en",
         { 
-          // Use WebGL as the default device for better compatibility
-          device: "webgl" 
+          // Use wasm as the default device for better compatibility
+          device: "wasm" 
         }
       );
       console.log("Transcription model loaded successfully");
