@@ -12,11 +12,13 @@ const Index = () => {
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [result, setResult] = useState<TranscriptionResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRestaurantSelect = (id: string) => {
     setSelectedRestaurant(id);
     // Clear previous results when restaurant changes
     setResult(null);
+    setError(null);
   };
 
   const handleAudioCaptured = async (audioBlob: Blob) => {
@@ -31,21 +33,29 @@ const Index = () => {
 
     setIsProcessing(true);
     setResult(null);
+    setError(null);
 
     try {
+      console.log("Starting audio processing...");
       // Process the audio and get transcription
       const response = await processAudio(audioBlob, selectedRestaurant);
+      
+      if (!response.transcript) {
+        throw new Error("No transcript was generated. Please try speaking more clearly or for longer.");
+      }
+      
       setResult(response);
       
       toast({
         title: "Transcription Complete",
-        description: "Audio successfully processed.",
+        description: "Audio successfully processed using Whisper model.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing audio:", error);
+      setError(error.message || "Failed to process the audio");
       toast({
         title: "Processing Failed",
-        description: "Failed to process the audio. Please try again.",
+        description: error.message || "Failed to process the audio. Please try again.",
         variant: "destructive"
       });
     } finally {

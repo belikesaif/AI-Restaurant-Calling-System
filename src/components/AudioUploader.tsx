@@ -20,6 +20,7 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
   });
   
   const [modelLoaded, setModelLoaded] = useState(false);
+  const [modelLoading, setModelLoading] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,10 +29,10 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
   useEffect(() => {
     const loadModel = async () => {
       try {
-        setModelLoaded(false);
+        setModelLoading(true);
         toast({
-          title: "Loading speech recognition model",
-          description: "This may take a moment...",
+          title: "Loading Whisper Large model",
+          description: "This may take a few moments...",
         });
         
         await initTranscriptionModel();
@@ -39,15 +40,17 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
         setModelLoaded(true);
         toast({
           title: "Model loaded successfully",
-          description: "Speech recognition is ready to use",
+          description: "Voice recognition is ready to use",
         });
       } catch (error) {
         console.error("Error loading model:", error);
         toast({
           title: "Model loading failed",
-          description: "Will use fallback processing instead",
+          description: "Please try again or check console for errors",
           variant: "destructive"
         });
+      } finally {
+        setModelLoading(false);
       }
     };
 
@@ -116,7 +119,7 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
       
       toast({
         title: "Recording stopped",
-        description: "Processing your audio...",
+        description: "Processing your audio with Whisper model...",
       });
     }
   };
@@ -145,7 +148,7 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
     
     toast({
       title: "File uploaded",
-      description: "Processing your audio...",
+      description: "Processing your audio with Whisper model...",
     });
     
     onAudioCaptured(file);
