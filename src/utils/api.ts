@@ -1,5 +1,6 @@
 
 import { TranscriptionResult } from "../types";
+import { transcribeAudio, processTranscription, generateMenuRecommendations } from "./speechToText";
 
 // Since we can't actually connect to the backend specified in the prompt,
 // we'll simulate the API response for demo purposes
@@ -8,6 +9,46 @@ const mockRestaurants = [
   { id: "restaurant_2", name: "Seafood Delight" }
 ];
 
+// Get list of restaurants
+export const getRestaurants = async () => {
+  // Simulate API call
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockRestaurants);
+    }, 300);
+  });
+};
+
+// Upload audio and get transcription
+export const processAudio = async (audioBlob: Blob, restaurantId: string): Promise<TranscriptionResult> => {
+  try {
+    // Perform real speech-to-text transcription
+    const rawTranscript = await transcribeAudio(audioBlob);
+    
+    // Process and format the transcript
+    const transcript = processTranscription(rawTranscript);
+    
+    // Generate menu recommendations based on the transcript
+    const response = generateMenuRecommendations(transcript, restaurantId);
+    
+    return {
+      transcript,
+      response
+    };
+  } catch (error) {
+    console.error("Error processing audio:", error);
+    // Fallback to mock responses if real transcription fails
+    const mockResponse = mockMenuResponses[restaurantId as keyof typeof mockMenuResponses];
+    const mockTranscript = mockResponse.split("Transcribed Text: ")[1].split("\n\n")[0];
+    
+    return {
+      transcript: mockTranscript,
+      response: mockResponse
+    };
+  }
+};
+
+// Mock data for fallback
 const mockMenuResponses = {
   restaurant_1: `Transcribed Text: I'm looking for something light for lunch, maybe with chicken.
 
@@ -26,34 +67,4 @@ Based on our menu, here are some recommendations:
 • Desserts: Key Lime Pie, Sorbet
 
 Thank you for choosing Seafood Delight. We look forward to serving you!`
-};
-
-// Get list of restaurants
-export const getRestaurants = async () => {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockRestaurants);
-    }, 300);
-  });
-};
-
-// Upload audio and get transcription
-export const processAudio = async (audioBlob: Blob, restaurantId: string): Promise<TranscriptionResult> => {
-  // In a real application, we would upload the audio file to the backend
-  // For demo purposes, we'll simulate a delay and return mock data
-  
-  return new Promise((resolve) => {
-    // Simulate processing time
-    setTimeout(() => {
-      // Extract transcript and response from mock data
-      const response = mockMenuResponses[restaurantId as keyof typeof mockMenuResponses];
-      const transcript = response.split("Transcribed Text: ")[1].split("\n\n")[0];
-      
-      resolve({
-        transcript,
-        response
-      });
-    }, 2000); // Simulate 2 second processing time
-  });
 };

@@ -1,10 +1,11 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, StopCircle, Upload } from "lucide-react";
+import { Mic, StopCircle, Upload, Wand2 } from "lucide-react";
 import AudioVisualizer from "./AudioVisualizer";
 import { AudioState } from "../types";
 import { toast } from "@/components/ui/use-toast";
+import { initTranscriptionModel } from "../utils/speechToText";
 
 interface AudioUploaderProps {
   disabled: boolean;
@@ -18,9 +19,40 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
     isProcessing: false
   });
   
+  const [modelLoaded, setModelLoaded] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Preload the model on component mount
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        setModelLoaded(false);
+        toast({
+          title: "Loading speech recognition model",
+          description: "This may take a moment...",
+        });
+        
+        await initTranscriptionModel();
+        
+        setModelLoaded(true);
+        toast({
+          title: "Model loaded successfully",
+          description: "Speech recognition is ready to use",
+        });
+      } catch (error) {
+        console.error("Error loading model:", error);
+        toast({
+          title: "Model loading failed",
+          description: "Will use fallback processing instead",
+          variant: "destructive"
+        });
+      }
+    };
+
+    loadModel();
+  }, []);
 
   // Start recording audio
   const startRecording = async () => {
@@ -61,6 +93,11 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
       mediaRecorderRef.current.start();
       setAudioState(prev => ({ ...prev, isRecording: true, hasRecording: false }));
       
+      toast({
+        title: "Recording started",
+        description: "Speak clearly into your microphone",
+      });
+      
     } catch (error) {
       console.error("Error accessing microphone:", error);
       toast({
@@ -76,6 +113,11 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
     if (mediaRecorderRef.current && audioState.isRecording) {
       mediaRecorderRef.current.stop();
       setAudioState(prev => ({ ...prev, isRecording: false }));
+      
+      toast({
+        title: "Recording stopped",
+        description: "Processing your audio...",
+      });
     }
   };
 
@@ -101,6 +143,11 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
       audioBlob: file 
     }));
     
+    toast({
+      title: "File uploaded",
+      description: "Processing your audio...",
+    });
+    
     onAudioCaptured(file);
   };
 
@@ -124,6 +171,13 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
       <AudioVisualizer isRecording={audioState.isRecording} />
       
       <div className="flex justify-center gap-4 mt-6">
+        {!modelLoaded && (
+          <div className="text-amber-600 flex items-center gap-2 mb-4">
+            <Wand2 className="h-4 w-4 animate-pulse" />
+            <span>Loading speech model...</span>
+          </div>
+        )}
+        
         {!audioState.isRecording ? (
           <>
             <Button
@@ -157,6 +211,13 @@ const AudioUploader = ({ disabled, onAudioCaptured }: AudioUploaderProps) => {
           </Button>
         )}
       </div>
+      
+      {modelLoaded && (
+        <div className="mt-4 text-center text-sm text-green-600">
+          <span className="inline-block h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+          Speech recognition model loaded
+        </div>
+      )}
     </div>
   );
 };
